@@ -3,6 +3,16 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
+import re
+import traceback
+import hashlib
+import base64
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_aws_tags
+from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
+from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
+from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
+from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
+from ansible.module_utils._text import to_native
 __metaclass__ = type
 
 
@@ -108,8 +118,15 @@ options:
     description:
       - tag dict to apply to the function (requires botocore 1.5.40 or above).
     type: dict
-author:
+      vpc_security_group_ids:
+  layers:
+    - A list of function layers to add to the function's execution environment. Specify each layer by its ARN, including the version.
+  type: list
+  elements: str
+
+author(s):
     - 'Steyn Huizinga (@steynovich)'
+    - 'Brandon Sneider (@bsneider)'
 extends_documentation_fragment:
 - amazon.aws.aws
 - amazon.aws.ec2
@@ -135,6 +152,8 @@ EXAMPLES = r'''
     environment_variables: '{{ item.env_vars }}'
     tags:
       key1: 'value1'
+    layers:
+    - arn:aws:lambda:us-east-2:770693421928:layer:Klayers-python38-requests:12
   loop:
     - name: HelloWorld
       zip_file: hello-code.zip
@@ -211,17 +230,6 @@ configuration:
       }
 '''
 
-from ansible.module_utils._text import to_native
-from ansible.module_utils.common.dict_transformations import camel_dict_to_snake_dict
-from ansible_collections.amazon.aws.plugins.module_utils.core import AnsibleAWSModule
-from ansible_collections.amazon.aws.plugins.module_utils.core import is_boto3_error_code
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import AWSRetry
-from ansible_collections.amazon.aws.plugins.module_utils.ec2 import compare_aws_tags
-
-import base64
-import hashlib
-import traceback
-import re
 
 try:
     from botocore.exceptions import ClientError, BotoCoreError
@@ -240,20 +248,24 @@ def get_account_info(module):
     account_id = None
     partition = None
     try:
-        sts_client = module.client('sts', retry_decorator=AWSRetry.jittered_backoff())
+        sts_client = module.client(
+            'sts', retry_decorator=AWSRetry.jittered_backoff())
         caller_id = sts_client.get_caller_identity(aws_retry=True)
         account_id = caller_id.get('Account')
         partition = caller_id.get('Arn').split(':')[1]
     except (BotoCoreError, ClientError):
         try:
-            iam_client = module.client('iam', retry_decorator=AWSRetry.jittered_backoff())
-            arn, partition, service, reg, account_id, resource = iam_client.get_user(aws_retry=True)['User']['Arn'].split(':')
+            iam_client = module.client(
+                'iam', retry_decorator=AWSRetry.jittered_backoff())
+            arn, partition, service, reg, account_id, resource = iam_client.get_user(
+                aws_retry=True)['User']['Arn'].split(':')
         except is_boto3_error_code('AccessDenied') as e:
             try:
                 except_msg = to_native(e.message)
             except AttributeError:
                 except_msg = to_native(e)
-            m = re.search(r"arn:(aws(-([a-z\-]+))?):iam::([0-9]{12,32}):\w+/", except_msg)
+            m = re.search(
+                r"arn:(aws(-([a-z\-]+))?):iam::([0-9]{12,32}):\w+/", except_msg)
             if m is None:
                 module.fail_json_aws(e, msg="getting account information")
             account_id = m.group(4)
@@ -291,11 +303,13 @@ def set_tag(client, module, tags, function):
     arn = function['Configuration']['FunctionArn']
 
     try:
-        current_tags = client.list_tags(Resource=arn, aws_retry=True).get('Tags', {})
+        current_tags = client.list_tags(
+            Resource=arn, aws_retry=True).get('Tags', {})
     except (BotoCoreError, ClientError) as e:
         module.fail_json_aws(e, msg="Unable to list tags")
 
-    tags_to_add, tags_to_remove = compare_aws_tags(current_tags, tags, purge_tags=True)
+    tags_to_add, tags_to_remove = compare_aws_tags(
+        current_tags, tags, purge_tags=True)
 
     try:
         if tags_to_remove:
@@ -375,18 +389,21 @@ def main():
     dead_letter_arn = module.params.get('dead_letter_arn')
     tracing_mode = module.params.get('tracing_mode')
     tags = module.params.get('tags')
+    layers = module.params.get('layers')
 
     check_mode = module.check_mode
     changed = False
 
     try:
-        client = module.client('lambda', retry_decorator=AWSRetry.jittered_backoff())
+        client = module.client(
+            'lambda', retry_decorator=AWSRetry.jittered_backoff())
     except (ClientError, BotoCoreError) as e:
         module.fail_json_aws(e, msg="Trying to connect to AWS")
 
     if tags is not None:
         if not hasattr(client, "list_tags"):
-            module.fail_json(msg="Using tags requires botocore 1.5.40 or above")
+            module.fail_json(
+                msg="Using tags requires botocore 1.5.40 or above")
 
     if state == 'present':
         if re.match(r'^arn:aws(-([a-z\-]+))?:iam', role):
@@ -394,7 +411,8 @@ def main():
         else:
             # get account ID and assemble ARN
             account_id, partition = get_account_info(module)
-            role_arn = 'arn:{0}:iam::{1}:role/{2}'.format(partition, account_id, role)
+            role_arn = 'arn:{0}:iam::{1}:role/{2}'.format(
+                partition, account_id, role)
 
     # Get function configuration if present, False otherwise
     current_function = get_current_function(client, name)
@@ -424,14 +442,17 @@ def main():
             func_kwargs.update({'Runtime': runtime})
         if (environment_variables is not None) and (current_config.get(
                 'Environment', {}).get('Variables', {}) != environment_variables):
-            func_kwargs.update({'Environment': {'Variables': environment_variables}})
+            func_kwargs.update(
+                {'Environment': {'Variables': environment_variables}})
         if dead_letter_arn is not None:
             if current_config.get('DeadLetterConfig'):
                 if current_config['DeadLetterConfig']['TargetArn'] != dead_letter_arn:
-                    func_kwargs.update({'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
+                    func_kwargs.update(
+                        {'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
             else:
                 if dead_letter_arn != "":
-                    func_kwargs.update({'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
+                    func_kwargs.update(
+                        {'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
         if tracing_mode and (current_config.get('TracingConfig', {}).get('Mode', 'PassThrough') != tracing_mode):
             func_kwargs.update({'TracingConfig': {'Mode': tracing_mode}})
 
@@ -443,8 +464,10 @@ def main():
                 current_vpc_subnet_ids = current_config['VpcConfig']['SubnetIds']
                 current_vpc_security_group_ids = current_config['VpcConfig']['SecurityGroupIds']
 
-                subnet_net_id_changed = sorted(vpc_subnet_ids) != sorted(current_vpc_subnet_ids)
-                vpc_security_group_ids_changed = sorted(vpc_security_group_ids) != sorted(current_vpc_security_group_ids)
+                subnet_net_id_changed = sorted(
+                    vpc_subnet_ids) != sorted(current_vpc_subnet_ids)
+                vpc_security_group_ids_changed = sorted(
+                    vpc_security_group_ids) != sorted(current_vpc_security_group_ids)
 
             if 'VpcConfig' not in current_config or subnet_net_id_changed or vpc_security_group_ids_changed:
                 new_vpc_config = {'SubnetIds': vpc_subnet_ids,
@@ -453,17 +476,20 @@ def main():
         else:
             # No VPC configuration is desired, assure VPC config is empty when present in current config
             if 'VpcConfig' in current_config and current_config['VpcConfig'].get('VpcId'):
-                func_kwargs.update({'VpcConfig': {'SubnetIds': [], 'SecurityGroupIds': []}})
+                func_kwargs.update(
+                    {'VpcConfig': {'SubnetIds': [], 'SecurityGroupIds': []}})
 
         # Upload new configuration if configuration has changed
         if len(func_kwargs) > 1:
             try:
                 if not check_mode:
-                    response = client.update_function_configuration(aws_retry=True, **func_kwargs)
+                    response = client.update_function_configuration(
+                        aws_retry=True, **func_kwargs)
                     current_version = response['Version']
                 changed = True
             except (BotoCoreError, ClientError) as e:
-                module.fail_json_aws(e, msg="Trying to update lambda configuration")
+                module.fail_json_aws(
+                    e, msg="Trying to update lambda configuration")
 
         # Update code configuration
         code_kwargs = {'FunctionName': name, 'Publish': True}
@@ -489,27 +515,36 @@ def main():
                         encoded_zip = f.read()
                     code_kwargs.update({'ZipFile': encoded_zip})
                 except IOError as e:
-                    module.fail_json(msg=str(e), exception=traceback.format_exc())
+                    module.fail_json(
+                        msg=str(e), exception=traceback.format_exc())
 
         # Tag Function
         if tags is not None:
             if set_tag(client, module, tags, current_function):
                 changed = True
+        # Layers
+        if layers is not None:
+            # get all layers currently on and remove them
+            # add back the layers we need
+            code_kwargs.update({'Layers': layers})
 
         # Upload new code if needed (e.g. code checksum has changed)
         if len(code_kwargs) > 2:
             try:
                 if not check_mode:
-                    response = client.update_function_code(aws_retry=True, **code_kwargs)
+                    response = client.update_function_code(
+                        aws_retry=True, **code_kwargs)
                     current_version = response['Version']
                 changed = True
             except (BotoCoreError, ClientError) as e:
                 module.fail_json_aws(e, msg="Trying to upload new code")
 
         # Describe function code and configuration
-        response = get_current_function(client, name, qualifier=current_version)
+        response = get_current_function(
+            client, name, qualifier=current_version)
         if not response:
-            module.fail_json(msg='Unable to get function information after updating')
+            module.fail_json(
+                msg='Unable to get function information after updating')
 
         # We're done
         module.exit_json(changed=changed, **camel_dict_to_snake_dict(response))
@@ -533,7 +568,8 @@ def main():
                 module.fail_json(msg=str(e), exception=traceback.format_exc())
 
         else:
-            module.fail_json(msg='Either S3 object or path to zipfile required')
+            module.fail_json(
+                msg='Either S3 object or path to zipfile required')
 
         func_kwargs = {'FunctionName': name,
                        'Publish': True,
@@ -551,10 +587,12 @@ def main():
             func_kwargs.update({'Handler': handler})
 
         if environment_variables:
-            func_kwargs.update({'Environment': {'Variables': environment_variables}})
+            func_kwargs.update(
+                {'Environment': {'Variables': environment_variables}})
 
         if dead_letter_arn:
-            func_kwargs.update({'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
+            func_kwargs.update(
+                {'DeadLetterConfig': {'TargetArn': dead_letter_arn}})
 
         if tracing_mode:
             func_kwargs.update({'TracingConfig': {'Mode': tracing_mode}})
@@ -568,7 +606,8 @@ def main():
         current_version = None
         try:
             if not check_mode:
-                response = client.create_function(aws_retry=True, **func_kwargs)
+                response = client.create_function(
+                    aws_retry=True, **func_kwargs)
                 current_version = response['Version']
             changed = True
         except (BotoCoreError, ClientError) as e:
@@ -579,9 +618,11 @@ def main():
             if set_tag(client, module, tags, get_current_function(client, name)):
                 changed = True
 
-        response = get_current_function(client, name, qualifier=current_version)
+        response = get_current_function(
+            client, name, qualifier=current_version)
         if not response:
-            module.fail_json(msg='Unable to get function information after creating')
+            module.fail_json(
+                msg='Unable to get function information after creating')
         module.exit_json(changed=changed, **camel_dict_to_snake_dict(response))
 
     # Delete existing Lambda function
