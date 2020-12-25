@@ -178,7 +178,7 @@ class ApiGwRestApi:
 
             api = filter(lambda result: result['name'] == id, results['items'])
 
-            if len(api):
+            if len(list(api)):
                 response = api[0]
         except BotoCoreError as e:
             self.module.fail_json(

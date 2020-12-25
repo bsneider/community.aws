@@ -371,20 +371,20 @@ EXAMPLES = '''
   gather_facts: False
   tasks:
     - name: Create an api
-      apigw_rest_api:
+      community.aws.apigw_rest_api:
         name: 'my.example.com'
         state: present
       register: restapi
 
     - name: Create a resource
-      apigw_resource:
+      community.aws.apigw_resource:
         name: '/test'
         rest_api_id: "{{ restapi.api.id }}"
         state: present
       register: resource
 
     - name: Create a method
-      apigw_method:
+      community.aws.apigw_method:
         rest_api_id: "{{ restapi.api.id }}"
         resource_id: "{{ resource.resource.id }}"
         name: GET
@@ -426,7 +426,7 @@ EXAMPLES = '''
   gather_facts: False
   tasks:
     - name: Death
-      apigw_method:
+      community.aws.apigw_method:
         rest_api_id: abcd1234
         resource_id: wxyz9876
         name: GET
