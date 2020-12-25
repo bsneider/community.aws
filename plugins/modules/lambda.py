@@ -523,11 +523,6 @@ def main():
         if tags is not None:
             if set_tag(client, module, tags, current_function):
                 changed = True
-        # Layers
-        if layers is not None:
-            # get all layers currently on and remove them
-            # add back the layers we need
-            code_kwargs.update({'Layers': layers})
 
         # Upload new code if needed (e.g. code checksum has changed)
         if len(code_kwargs) > 2:
@@ -602,6 +597,12 @@ def main():
         if vpc_subnet_ids:
             func_kwargs.update({'VpcConfig': {'SubnetIds': vpc_subnet_ids,
                                               'SecurityGroupIds': vpc_security_group_ids}})
+
+        # Layers
+        if layers is not None:
+            # get all layers currently on and remove them
+            # add back the layers we need
+            func_kwargs.update({'Layers': layers})
 
         # Finally try to create function
         current_version = None
