@@ -1,20 +1,18 @@
 # Make coding more python3-ish
-from __future__ import (absolute_import, division, print_function)
+from __future__ import absolute_import, division, print_function
+
 __metaclass__ = type
 
-from io import StringIO
-import pytest
 import sys
+from io import StringIO
+
+import pytest
 from ansible import constants as C
-from ansible.compat.selectors import SelectorKey, EVENT_READ
-from ansible_collections.community.aws.tests.unit.compat import unittest
-from ansible_collections.community.aws.tests.unit.compat.mock import patch, MagicMock, PropertyMock
-from ansible.errors import AnsibleError, AnsibleConnectionFailure, AnsibleFileNotFound
-from ansible.module_utils.six.moves import shlex_quote
-from ansible.module_utils._text import to_bytes
 from ansible.playbook.play_context import PlayContext
-from ansible_collections.community.aws.plugins.connection import aws_ssm
 from ansible.plugins.loader import connection_loader
+from ansible_collections.community.aws.tests.unit.compat import unittest
+from ansible_collections.community.aws.tests.unit.compat.mock import (
+    MagicMock, patch)
 
 
 @pytest.mark.skipif(sys.version_info < (2, 7), reason="requires Python 2.7 or higher")
@@ -52,7 +50,8 @@ class TestConnectionBaseClass(unittest.TestCase):
         pc = PlayContext()
         new_stdin = StringIO()
         conn = connection_loader.get('community.aws.aws_ssm', pc, new_stdin)
-        r_choice.side_effect = ['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'b', 'b']
+        r_choice.side_effect = ['a', 'a', 'a',
+                                'a', 'a', 'b', 'b', 'b', 'b', 'b']
         conn.MARK_LENGTH = 5
         conn._session = MagicMock()
         conn._session.stdin.write = MagicMock()
@@ -76,7 +75,8 @@ class TestConnectionBaseClass(unittest.TestCase):
         line = ['a', 'b']
         conn._post_process = MagicMock()
         conn._post_process.return_value = 'test'
-        conn._session.stdout.readline.side_effect = iter(['aaaaa\n', 'Hi\n', '0\n', 'bbbbb\n'])
+        conn._session.stdout.readline.side_effect = iter(
+            ['aaaaa\n', 'Hi\n', '0\n', 'bbbbb\n'])
         conn.get_option = MagicMock()
         conn.get_option.return_value = 1
         cmd = MagicMock()
@@ -170,9 +170,11 @@ class TestConnectionBaseClass(unittest.TestCase):
         conn.exec_command = MagicMock()
         conn.exec_command.return_value = (put_command, None, False)
         conn.download_fileobj = MagicMock()
-        (returncode, stdout, stderr) = conn.exec_command(put_command, in_data=None, sudoable=False)
+        (returncode, stdout, stderr) = conn.exec_command(
+            put_command, in_data=None, sudoable=False)
         returncode = 0
-        (returncode, stdout, stderr) = conn.exec_command(get_command, in_data=None, sudoable=False)
+        (returncode, stdout, stderr) = conn.exec_command(
+            get_command, in_data=None, sudoable=False)
 
     @patch('subprocess.check_output')
     def test_plugins_connection_aws_ssm_close(self, s_check_output):
