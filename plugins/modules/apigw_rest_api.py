@@ -102,7 +102,7 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-### Sample create response
+# Sample create response
 {
     "api": {
         "ResponseMetadata": {
@@ -177,8 +177,9 @@ class ApiGwRestApi:
             id = self.module.params.get('name')
 
             api = filter(lambda result: result['name'] == id, results['items'])
-
-            if len(list(api)):
+            print(api)
+            if not api:
+                print('made it here')
                 response = api[0]
         except BotoCoreError as e:
             self.module.fail_json(
@@ -186,7 +187,7 @@ class ApiGwRestApi:
 
         return response
 
-    @staticmethod
+    @ staticmethod
     def _is_changed(api, params):
         """
         Determine if the discovered api differs from the user-provided params
