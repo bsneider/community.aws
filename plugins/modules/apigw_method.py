@@ -1221,7 +1221,7 @@ class ApiGwMethod:
             )
             return response
         except ClientError as e:
-            if 'NotFoundException' in e.message:
+            if 'NotFoundException' in e.response['Error']['Message']:
                 return None
             else:
                 self.module.fail_json(

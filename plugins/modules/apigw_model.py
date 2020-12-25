@@ -182,7 +182,7 @@ class ApiGwModel:
                     modelName=self.module.params.get('name')
                 )
             except ClientError as e:
-                if 'NotFoundException' in e.message:
+                if 'NotFoundException' in e.response['Error']['Message']:
                     return None
                 self.module.fail_json(
                     msg='Error while deleting model: {}'.format(e))

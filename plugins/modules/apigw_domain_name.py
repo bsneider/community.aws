@@ -172,7 +172,7 @@ class ApiGwDomainName:
                 domainName=self.module.params['name'])
 
         except ClientError as e:
-            if 'NotFoundException' in e.message:
+            if 'NotFoundException' in e.response['Error']['Message']:
                 resp = None
             else:
                 self.module.fail_json(
