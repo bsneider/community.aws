@@ -354,6 +354,7 @@ def main():
         dead_letter_arn=dict(),
         tracing_mode=dict(choices=['Active', 'PassThrough']),
         tags=dict(type='dict'),
+        layers=dict(type='list', elements='str'),
     )
 
     mutually_exclusive = [['zip_file', 's3_key'],
