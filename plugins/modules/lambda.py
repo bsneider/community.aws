@@ -480,6 +480,12 @@ def main():
                 func_kwargs.update(
                     {'VpcConfig': {'SubnetIds': [], 'SecurityGroupIds': []}})
 
+        # Layers
+        if layers is not None:
+            # get all layers currently on and remove them
+            # add back the layers we need
+            func_kwargs.update({'Layers': layers})
+
         # Upload new configuration if configuration has changed
         if len(func_kwargs) > 1:
             try:
