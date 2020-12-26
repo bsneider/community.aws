@@ -7,6 +7,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from mock import patch
 from plugins.modules import apigw_method
 from plugins.modules.apigw_method import ApiGwMethod
+from truth.truth import AssertThat
 
 
 def merge(a, b):
@@ -109,7 +110,6 @@ class TestApiGwMethod(unittest.TestCase):
 
 
 # Find tests
-
 
     @patch.object(ApiGwMethod, '_update_method', return_value=[None, None])
     @patch.object(ApiGwMethod, '_create_method', return_value=[None, None])
@@ -1267,7 +1267,6 @@ class TestApiGwMethod(unittest.TestCase):
     # argument spec and instead tests errors arising from illegal combinations of
     # parameters (as per the boto3 apigateway docs)
 
-
     def test_validation_of_arguments(self):
         # A complete and valid param list
         params = {
@@ -1416,7 +1415,6 @@ class TestApiGwMethod(unittest.TestCase):
 
 
 # End validation
-
 
     def test_define_argument_spec(self):
         result = ApiGwMethod._define_module_argument_spec()

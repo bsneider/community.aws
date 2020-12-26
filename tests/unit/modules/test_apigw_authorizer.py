@@ -5,6 +5,7 @@ from importlib import reload
 import mock
 from botocore.exceptions import BotoCoreError
 from mock import patch
+from truth.truth import AssertThat
 from plugins.modules import apigw_authorizer
 from plugins.modules.apigw_authorizer import ApiGwAuthorizer
 
@@ -310,8 +311,9 @@ class TestApiGwAuthorizer(unittest.TestCase):
             authorizerId='id12345',
             patchOperations=mock.ANY
         )
-        self.assertItemsEqual(
-            expected_patches, self.authorizer.client.update_authorizer.call_args[1]['patchOperations'])
+        sut = self.authorizer.client.update_authorizer.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patches, key=lambda s: s['path']))
 
     @patch('plugins.modules.apigw_authorizer.ApiGwAuthorizer._create_patches', return_value=[])
     @patch.object(ApiGwAuthorizer, '_retrieve_authorizer', return_value={'something': 'here'})

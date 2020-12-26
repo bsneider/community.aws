@@ -227,7 +227,7 @@ def build_patch_args(stage, params):
     stg_methods = stage.get('methodSettings', {})
 
     patches = []
-    for ans_param, boto_param in arg_map.iteritems():
+    for ans_param, boto_param in arg_map.items():
         if ans_param in params and params[ans_param] is not None:
             if boto_param in stage and str(params[ans_param]) == str(stage[boto_param]):
                 pass

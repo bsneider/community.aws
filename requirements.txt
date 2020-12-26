@@ -4,3 +4,4 @@ boto3>=1.9.249
 ansible
 mock
 pytest
+pytruth
