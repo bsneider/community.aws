@@ -102,7 +102,7 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-# Sample create response
+### Sample create response
 {
     "api": {
         "ResponseMetadata": {
@@ -174,20 +174,17 @@ class ApiGwRestApi:
         response = None
         try:
             results = self.client.get_rest_apis()
-            id = self.module.params.get('name')
+            name = self.module.params.get('name')
 
-            api = filter(lambda result: result['name'] == id, results['items'])
-            print(api)
-            if not api:
-                print('made it here')
-                response = api[0]
+            return next((i for i in results['items'] if i['name'] == name), None)
+
         except BotoCoreError as e:
             self.module.fail_json(
                 msg="Encountered fatal error calling boto3 get_rest_apis function: {0}".format(e))
 
         return response
 
-    @ staticmethod
+    @staticmethod
     def _is_changed(api, params):
         """
         Determine if the discovered api differs from the user-provided params
