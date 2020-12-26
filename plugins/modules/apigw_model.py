@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 # API Gateway Ansible Modules
 #
 # Modules in this project allow management of the AWS API Gateway service.
@@ -34,6 +32,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 from __future__ import absolute_import, division, print_function
+
+from json import dumps
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -182,7 +182,7 @@ class ApiGwModel:
                     modelName=self.module.params.get('name')
                 )
             except ClientError as e:
-                if 'NotFoundException' in e.response['Error']['Message']:
+                if 'NotFoundException' in dumps(e.response):
                     return None
                 self.module.fail_json(
                     msg='Error while deleting model: {}'.format(e))

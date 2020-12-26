@@ -7,6 +7,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 from mock import patch
 from plugins.modules import apigw_domain_name
 from plugins.modules.apigw_domain_name import ApiGwDomainName
+from truth.truth import AssertThat
 
 
 class TestApiGwDomainName(unittest.TestCase):
@@ -83,8 +84,7 @@ class TestApiGwDomainName(unittest.TestCase):
             side_effect=ClientError({'Error': {'Code': 'x NotFoundException x'}}, 'xxx'))
 
         self.domain_name.process_request()
-
-        self.assertEqual(None, self.domain_name.me)
+        AssertThat(self.domain_name.me).IsNone()
         self.domain_name.client.get_domain_name.assert_called_once_with(
             domainName='testify')
 

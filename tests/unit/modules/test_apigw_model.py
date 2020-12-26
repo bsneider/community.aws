@@ -2,11 +2,13 @@ import unittest
 from importlib import reload
 
 import mock
-from ansible.module_utils import basic
+from ansible.module_utils.basic import AnsibleModule
 from botocore.exceptions import ClientError
 from mock import patch
 from plugins.modules import apigw_model
 from plugins.modules.apigw_model import ApiGwModel
+from pyparsing import OnlyOnce
+from truth.truth import AssertThat
 
 
 class TestApiGwModel(unittest.TestCase):
@@ -31,8 +33,6 @@ class TestApiGwModel(unittest.TestCase):
         self.model.client.delete_model = mock.MagicMock()
         self.model.client.get_model = mock.MagicMock()
         self.model.model = mock.MagicMock()
-
-        basic.AnsibleModule = mock.MagicMock(return_value=self.module)
 
     def test_boto_module_not_found(self):
         # Setup Mock Import Function
@@ -361,14 +361,14 @@ class TestApiGwModel(unittest.TestCase):
     @patch.object(apigw_model, 'ApiGwModel')
     def test_main(self, mockApiGwModel, mockAnsibleModule):
         argumentSpec = mock.MagicMock()
-        apiGwModel = ApiGwModel(self.module)
+        module = self.module
+        apiGwModel = ApiGwModel(module)
         apiGwModel.process_request = mock.MagicMock()
         mockApiGwModel._define_module_argument_spec.return_value = argumentSpec
         mockApiGwModel.return_value = apiGwModel
 
         apigw_model.main()
-
-        basic.AnsibleModule.assert_called_with(
+        mockAnsibleModule.assert_called_with(
             argument_spec=argumentSpec, supports_check_mode=True)
-        mockApiGwModel.assert_called_once_with(self.module)
+        AssertThat(mockApiGwModel).WasCalled().Once()
         self.assertEqual(1, apiGwModel.process_request.call_count)

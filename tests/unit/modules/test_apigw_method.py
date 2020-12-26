@@ -265,8 +265,9 @@ class TestApiGwMethod(unittest.TestCase):
             httpMethod='GET',
             patchOperations=mock.ANY
         )
-        self.assertItemsEqual(
-            expected_patch_ops, self.method.client.update_method.call_args[1]['patchOperations'])
+        sut = self.method.client.update_method.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
 
     @patch('plugins.modules.apigw_method.put_integration', mock_args)
     @patch.object(ApiGwMethod, 'validate_params')
@@ -293,9 +294,9 @@ class TestApiGwMethod(unittest.TestCase):
         ]
 
         self.method.process_request()
-
-        self.assertItemsEqual(
-            expected_patch_ops, self.method.client.update_method.call_args[1]['patchOperations'])
+        sut = self.method.client.update_method.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
 
     @patch('plugins.modules.apigw_method.put_integration', mock_args)
     @patch.object(ApiGwMethod, 'validate_params')
@@ -330,9 +331,9 @@ class TestApiGwMethod(unittest.TestCase):
         ]
 
         self.method.process_request()
-
-        self.assertItemsEqual(
-            expected_patch_ops, self.method.client.update_method.call_args[1]['patchOperations'])
+        sut = self.method.client.update_method.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
 
     @patch('plugins.modules.apigw_method.put_integration', mock_args)
     @patch.object(ApiGwMethod, 'validate_params')
@@ -485,8 +486,9 @@ class TestApiGwMethod(unittest.TestCase):
             httpMethod='GET',
             patchOperations=mock.ANY
         )
-        self.assertItemsEqual(
-            expected_patch_ops, self.method.client.update_integration.call_args[1]['patchOperations'])
+        sut = self.method.client.update_integration.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
 
     @patch.object(ApiGwMethod, 'validate_params')
     @patch.object(ApiGwMethod, '_find_method')
@@ -589,9 +591,9 @@ class TestApiGwMethod(unittest.TestCase):
             self.method.module.params['method_integration']['integration_type'] = t
             mock_find.return_value = mock_return
             self.method.process_request()
-
-            self.assertItemsEqual(
-                expected, self.method.client.update_integration.call_args[1]['patchOperations'])
+            sut = self.method.client.update_integration.call_args[1]['patchOperations']
+            AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+                sorted(expected, key=lambda s: s['path']))
             self.method.client.update_integration.call_args = []
 
     @patch.object(ApiGwMethod, 'validate_params')
@@ -796,8 +798,9 @@ class TestApiGwMethod(unittest.TestCase):
             statusCode='202',
             patchOperations=mock.ANY
         )
-        self.assertItemsEqual(
-            expected_patch_ops, self.method.client.update_method_response.call_args[1]['patchOperations'])
+        sut = self.method.client.update_method_response.call_args[1]['patchOperations']
+        AssertThat(sorted(sut, key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
 
     @patch('plugins.modules.apigw_method.put_integration', mock_args)
     @patch.object(ApiGwMethod, 'validate_params')
@@ -886,19 +889,18 @@ class TestApiGwMethod(unittest.TestCase):
         ]
 
         self.method.process_request()
-
-        self.method.client.update_integration_response.assert_called_once_with(
+        sut = self.method.client
+        AssertThat(sut.update_integration_response).WasCalled().Once().With(
             restApiId='restid',
             resourceId='rsrcid',
             httpMethod='GET',
             statusCode='202',
             patchOperations=mock.ANY
         )
-        self.assertItemsEqual(
-            expected_patch_ops,
-            self.method.client.update_integration_response.call_args[1]['patchOperations']
-        )
-        self.method.client.put_integration_response.assert_called_once_with(
+        AssertThat(sorted(sut.update_integration_response.call_args[1]['patchOperations'], key=lambda s: s['path'])).IsEqualTo(
+            sorted(expected_patch_ops, key=lambda s: s['path']))
+
+        AssertThat(sut.put_integration_response).WasCalled().Once().With(
             restApiId='restid',
             resourceId='rsrcid',
             httpMethod='GET',
@@ -907,7 +909,7 @@ class TestApiGwMethod(unittest.TestCase):
             responseParameters={},
             responseTemplates={}
         )
-        self.method.client.delete_integration_response.assert_called_once_with(
+        AssertThat(sut.delete_integration_response).WasCalled().Once().With(
             restApiId='restid',
             resourceId='rsrcid',
             httpMethod='GET',

@@ -36,6 +36,8 @@
 
 from __future__ import absolute_import, division, print_function
 
+from json import dumps
+
 from ansible.module_utils.basic import AnsibleModule
 
 __metaclass__ = type
@@ -172,7 +174,7 @@ class ApiGwDomainName:
                 domainName=self.module.params['name'])
 
         except ClientError as e:
-            if 'NotFoundException' in e.response['Error']['Message']:
+            if 'NotFoundException' in dumps(e.response):
                 resp = None
             else:
                 self.module.fail_json(

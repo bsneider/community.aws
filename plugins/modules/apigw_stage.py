@@ -38,6 +38,7 @@
 from __future__ import absolute_import, division, print_function
 
 import re
+from json import dumps
 
 from ansible.module_utils.basic import AnsibleModule
 
@@ -307,7 +308,7 @@ class ApiGwStage:
                 stageName=self.module.params.get('name')
             )
         except ClientError as e:
-            if 'NotFoundException' in e.response['Error']['Message']:
+            if 'NotFoundException' in dumps(e.response):
                 return None
             else:
                 self.module.fail_json(
